@@ -1,0 +1,40 @@
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .grid-wrapper {
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  .schedule-grid {
+    min-width: 0;
+    font-size: 0.75rem;
+  }
+
+  .schedule-grid thead th,
+  .break-row td,
+  .entry-chip {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .empty-cell {
+    display: none;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 1cm;
+  }
+}

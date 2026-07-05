@@ -1,0 +1,76 @@
+export const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as const
+
+export const SUBJECT_COLORS = [
+  '#fecaca',
+  '#fed7aa',
+  '#fde68a',
+  '#d9f99d',
+  '#bbf7d0',
+  '#99f6e4',
+  '#a5f3fc',
+  '#bae6fd',
+  '#c7d2fe',
+  '#ddd6fe',
+  '#f5d0fe',
+  '#fecdd3',
+] as const
+
+export interface Teacher {
+  id: string
+  name: string
+  code: string
+}
+
+export interface Subject {
+  id: string
+  name: string
+  color: string
+}
+
+export interface ClassGroup {
+  id: string
+  name: string
+}
+
+export interface Period {
+  id: string
+  start: string
+  end: string
+  isBreak: boolean
+}
+
+export interface ScheduleEntry {
+  id: string
+  day: number
+  periodId: string
+  classId: string
+  subjectId: string
+  teacherId: string
+}
+
+export interface SlotAssignment {
+  day: number
+  periodId: string
+  classId: string
+  subjectId: string
+  teacherId: string
+}
+
+export interface AppState {
+  version: 1
+  teachers: Teacher[]
+  subjects: Subject[]
+  classes: ClassGroup[]
+  periods: Period[]
+  entries: ScheduleEntry[]
+}
+
+/** Nomor "jam ke-" per period; slot istirahat tidak ikut dihitung. */
+export function lessonNumbers(periods: Period[]): Map<string, number> {
+  const map = new Map<string, number>()
+  let n = 0
+  for (const p of periods) {
+    if (!p.isBreak) map.set(p.id, ++n)
+  }
+  return map
+}
