@@ -1,19 +1,35 @@
 export const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as const
 
-export const SUBJECT_COLORS = [
-  '#fecaca',
-  '#fed7aa',
-  '#fde68a',
-  '#d9f99d',
-  '#bbf7d0',
-  '#99f6e4',
-  '#a5f3fc',
-  '#bae6fd',
-  '#c7d2fe',
-  '#ddd6fe',
-  '#f5d0fe',
-  '#fecdd3',
-] as const
+function hslToHex(h: number, s: number, l: number): string {
+  const ll = l / 100
+  const a = (s * Math.min(ll, 1 - ll)) / 100
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12
+    const color = ll - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color)
+      .toString(16)
+      .padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+// Warna mapel pastel yang terang (teks gelap tetap terbaca). Rentang hue merah
+// (≈345–15°) SENGAJA dilewati supaya warna merah khusus dipakai untuk menandai
+// bentrok — lihat .entry-chip.conflict di index.css.
+const PALETTE_HUES = [
+  20, 35, 50, 65, 80, 95, 110, 125, 140, 155, 170, 185, 200, 215, 230, 245, 260, 275, 290, 305,
+]
+const PALETTE_RINGS: Array<[s: number, l: number]> = [
+  [68, 84],
+  [80, 89],
+  [50, 79],
+]
+
+// 20 hue × 3 ring = 60 warna berbeda; hue diselang-seling agar warna
+// berdekatan di daftar tetap kontras.
+export const SUBJECT_COLORS: string[] = PALETTE_RINGS.flatMap(([s, l]) =>
+  PALETTE_HUES.map((h) => hslToHex(h, s, l)),
+)
 
 export interface Teacher {
   id: string

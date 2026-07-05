@@ -310,9 +310,18 @@ body {
   min-height: 2.6rem;
 }
 
+/* Merah = penanda bentrok (khusus). Isi sel penuh merah, teks putih. */
 .entry-chip.conflict {
-  outline: 2px solid var(--danger);
-  outline-offset: -2px;
+  background: var(--danger);
+  box-shadow: inset 0 0 0 1px #991b1b;
+}
+
+.entry-chip.conflict .entry-title {
+  color: #fff;
+}
+
+.entry-chip.conflict .entry-subtitle {
+  color: #fee2e2;
 }
 
 .entry-title {
@@ -700,6 +709,9 @@ body {
   gap: 0.3rem;
   flex-wrap: wrap;
   margin-top: 0.6rem;
+  max-height: 5.5rem;
+  overflow-y: auto;
+  padding: 0.15rem;
 }
 
 .swatch {

@@ -1,5 +1,8 @@
-import type { AppState, Assignment, Subject, Teacher } from '../types'
+import { SUBJECT_COLORS, type AppState, type Assignment, type Subject, type Teacher } from '../types'
 import { makeDefaultDaySchedules } from './scheduleReducer'
+
+// Warna diambil dari palet (tanpa merah) dan diberi jarak agar antar mapel kontras.
+const paletteColor = (i: number) => SUBJECT_COLORS[(i * 13) % SUBJECT_COLORS.length]
 
 const teachers: Teacher[] = [
   { id: 't-af', name: 'Ahmad Fauzi', code: 'AF' },
@@ -15,32 +18,20 @@ const teachers: Teacher[] = [
 // Informatika (praktik Lab) hanya untuk kelas 8 & 9 → contoh "mapel khusus kelas".
 const INF_CLASSES = ['c-8a', 'c-8b', 'c-9a']
 
-const subjects: Subject[] = [
-  { id: 's-mtk', name: 'Matematika', color: '#bae6fd', maxJpPerWeek: 4 },
-  { id: 's-bin', name: 'Bahasa Indonesia', color: '#fecaca', maxJpPerWeek: 4 },
-  { id: 's-big', name: 'Bahasa Inggris', color: '#fde68a', maxJpPerWeek: 3 },
-  { id: 's-ipa', name: 'IPA', color: '#bbf7d0', maxJpPerWeek: 4 },
-  { id: 's-ips', name: 'IPS', color: '#fed7aa', maxJpPerWeek: 3 },
-  { id: 's-pai', name: 'Pendidikan Agama', color: '#d9f99d', maxJpPerWeek: 2 },
-  {
-    id: 's-pjok',
-    name: 'PJOK',
-    color: '#a5f3fc',
-    maxJpPerWeek: 2,
-    distribution: 'ganda',
-    timePreference: 'pagi',
-  },
-  { id: 's-sbd', name: 'Seni Budaya', color: '#f5d0fe', maxJpPerWeek: 2 },
-  { id: 's-ppkn', name: 'PPKn', color: '#c7d2fe', maxJpPerWeek: 2 },
-  {
-    id: 's-inf',
-    name: 'Informatika',
-    color: '#99f6e4',
-    maxJpPerWeek: 3,
-    distribution: 'blok',
-    classIds: INF_CLASSES,
-  },
+const SUBJECT_DEFS: Array<Omit<Subject, 'color'>> = [
+  { id: 's-mtk', name: 'Matematika', maxJpPerWeek: 4 },
+  { id: 's-bin', name: 'Bahasa Indonesia', maxJpPerWeek: 4 },
+  { id: 's-big', name: 'Bahasa Inggris', maxJpPerWeek: 3 },
+  { id: 's-ipa', name: 'IPA', maxJpPerWeek: 4 },
+  { id: 's-ips', name: 'IPS', maxJpPerWeek: 3 },
+  { id: 's-pai', name: 'Pendidikan Agama', maxJpPerWeek: 2 },
+  { id: 's-pjok', name: 'PJOK', maxJpPerWeek: 2, distribution: 'ganda', timePreference: 'pagi' },
+  { id: 's-sbd', name: 'Seni Budaya', maxJpPerWeek: 2 },
+  { id: 's-ppkn', name: 'PPKn', maxJpPerWeek: 2 },
+  { id: 's-inf', name: 'Informatika', maxJpPerWeek: 3, distribution: 'blok', classIds: INF_CLASSES },
 ]
+
+const subjects: Subject[] = SUBJECT_DEFS.map((s, i) => ({ ...s, color: paletteColor(i) }))
 
 const classes = [
   { id: 'c-7a', name: '7A' },
