@@ -33,7 +33,8 @@ Flows worth driving:
 2. Tab "Jadwal per Kelas" → click a cell → EntryDialog: pick mapel + guru; picking a teacher already teaching another class at that slot shows a ⚠ warning; saving creates a conflict → banner appears, chip gets red outline.
 3. Banner "Lihat jadwal guru" → jumps to teacher tab with that teacher selected.
 4. Reload page → data persists (localStorage).
-5. "Export Excel" → wait for `download` event, save, re-read with `exceljs` (already a dependency) to assert sheet names ("Kelas 7A", "Guru AF …"), header row, and cell fills.
+5. "Export Excel" → wait for `download` event, save, re-read with `exceljs` (already a dependency). Format: SATU sheet gaya jadwal sekolah — judul, header 3 baris (HARI|JAM KE-|WAKTU|KELAS...), hari tersusun vertikal (HARI di-merge per blok), waktu "07.40-08.20" (titik), isi sel = kode guru (atau nama mapel untuk entri tanpa guru, mis. P5BK), legenda "KODE GURU" (kode|nama|mapel) di kolom kanan.
+5b. "Import Excel" (hidden `input[type=file]`, pakai `setInputFiles`) membaca format yang sama — uji dengan file asli `JADWAL PELAJARAN 2425.xlsx` di root repo dan dengan hasil export (round-trip: jumlah kelas/guru/entri harus sama). Konfirmasi import memakai `confirm()` berisi ringkasan; file tak valid → `alert()` tanpa mengubah data.
 6. Print: `page.emulateMedia({ media: 'print' })` + screenshot — only `.print-title` + grid should be visible (`.no-print` hidden).
 
 ## Gotchas
@@ -43,3 +44,5 @@ Flows worth driving:
 - Tiap hari punya susunan jam sendiri (`state.daySchedules[day]`). Grid = 5 kolom `.day-col`; slot mapel = `.slot.lesson` (clickable), slot kegiatan (Upacara/Istirahat/Solat Jumat) = `.slot.activity` (tidak clickable). Senin default diawali Upacara, Jumat lebih pendek + Solat Jumat.
 - Penomoran "jam ke-" dihitung per hari dan melompati slot kegiatan — jam ke-1 Senin default mulai 07:45, bukan 07:00.
 - Pengaturan jam di Data Master pakai tab per hari (`.day-tab`) + tombol "Salin" antar hari; simpan memakai satu tombol "Simpan Jam Pelajaran" untuk seluruh minggu.
+- Entri boleh tanpa guru (`teacherId: null`, mis. P5BK) — tidak ikut deteksi bentrok dan tidak muncul di tampilan per-guru.
+- Di legenda KODE GURU, baris dengan nama kosong mewarisi nama dari kode ber-prefix angka sama sebelumnya (3b ← 3a).

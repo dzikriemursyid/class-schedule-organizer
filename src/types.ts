@@ -46,7 +46,8 @@ export interface ScheduleEntry {
   periodId: string
   classId: string
   subjectId: string
-  teacherId: string
+  /** null = kegiatan tanpa guru pengampu (mis. P5BK). */
+  teacherId: string | null
 }
 
 export interface SlotAssignment {
@@ -54,7 +55,7 @@ export interface SlotAssignment {
   periodId: string
   classId: string
   subjectId: string
-  teacherId: string
+  teacherId: string | null
 }
 
 export interface AppState {

@@ -69,7 +69,7 @@ export function PeriodSettings() {
   }
 
   return (
-    <div className="card">
+    <div className="card card-wide">
       <h3>Jam Pelajaran per Hari</h3>
       <div className="day-tabs">
         {DAYS.map((name, day) => (
@@ -83,7 +83,8 @@ export function PeriodSettings() {
         ))}
       </div>
       <p className="hint">Kosongkan kolom "Kegiatan" untuk jam pelajaran biasa.</p>
-      <table className="period-table">
+      <div className="table-scroll">
+        <table className="period-table">
         <thead>
           <tr>
             <th>Jam ke-</th>
@@ -127,8 +128,9 @@ export function PeriodSettings() {
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
       <div className="add-form">
         <button className="btn" onClick={addPeriod}>
           + Tambah slot

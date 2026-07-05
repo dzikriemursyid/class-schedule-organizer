@@ -399,11 +399,26 @@ body {
   align-items: start;
 }
 
+/* Cegah isi card meluber menabrak card sebelahnya. */
+.master-grid > .card {
+  min-width: 0;
+}
+
 .card {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1rem 1.15rem;
+  overflow: hidden;
+}
+
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
 }
 
 .card h3 {
@@ -428,6 +443,11 @@ body {
   padding: 0.35rem 0;
   border-bottom: 1px solid #e2e8f0;
   font-size: 0.9rem;
+}
+
+.item > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .item.editing {
@@ -472,6 +492,7 @@ body {
 
 .add-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
@@ -567,9 +588,9 @@ body {
 
 .period-table {
   width: 100%;
+  min-width: 30rem;
   border-collapse: collapse;
   font-size: 0.85rem;
-  margin-bottom: 0.75rem;
 }
 
 .period-table th,

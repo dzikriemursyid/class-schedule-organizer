@@ -13,7 +13,7 @@ export function EntryCell({ title, subtitle, color, isConflict }: EntryCellProps
       title={isConflict ? 'Bentrok: guru mengajar di kelas lain pada jam ini' : undefined}
     >
       <span className="entry-title">{title}</span>
-      <span className="entry-subtitle">{subtitle}</span>
+      {subtitle !== '' && <span className="entry-subtitle">{subtitle}</span>}
     </div>
   )
 }

@@ -34,6 +34,7 @@ export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps)
   const busyTeachers = useMemo(() => {
     const map = new Map<string, string>()
     for (const e of state.entries) {
+      if (e.teacherId === null) continue
       if (e.day !== day || e.periodId !== period.id || e.classId === classId) continue
       const cls = state.classes.find((c) => c.id === e.classId)
       map.set(e.teacherId, cls?.name ?? '?')
@@ -41,13 +42,17 @@ export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps)
     return map
   }, [state.entries, state.classes, day, period.id, classId])
 
-  const canSave = subjectId !== '' && teacherId !== ''
+  const canSave = subjectId !== ''
 
   function handleSave() {
     if (!canSave) return
-    const slots: SlotAssignment[] = followingPeriods
-      .slice(0, span)
-      .map((p) => ({ day, periodId: p.id, classId, subjectId, teacherId }))
+    const slots: SlotAssignment[] = followingPeriods.slice(0, span).map((p) => ({
+      day,
+      periodId: p.id,
+      classId,
+      subjectId,
+      teacherId: teacherId === '' ? null : teacherId,
+    }))
     dispatch({ type: 'SET_SLOTS', slots })
     onClose()
   }
@@ -80,7 +85,7 @@ export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps)
         <label className="field">
           <span>Guru pengampu</span>
           <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-            <option value="">— pilih guru —</option>
+            <option value="">— tanpa guru (mis. P5BK) —</option>
             {state.teachers.map((t) => {
               const busyIn = busyTeachers.get(t.id)
               return (

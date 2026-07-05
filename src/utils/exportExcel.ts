@@ -1,5 +1,5 @@
 import type ExcelJS from 'exceljs'
-import { DAYS, type AppState, type Period } from '../types'
+import { DAYS, lessonNumbers, type AppState } from '../types'
 
 const HEADER_FILL = 'FF1E3A5F'
 const ACTIVITY_FILL = 'FFE2E8F0'
@@ -10,116 +10,163 @@ const BORDER = {
   right: { style: 'thin' },
 } satisfies Partial<ExcelJS.Borders>
 
-interface CellContent {
-  text: string
-  color?: string
-}
-
 function toArgb(hex: string): string {
   return `FF${hex.replace('#', '').toUpperCase()}`
 }
 
-function sheetName(name: string): string {
-  return name.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31)
+/** Format waktu mengikuti kebiasaan jadwal sekolah: "07.40-08.20". */
+function timeRange(start: string, end: string): string {
+  return `${start.replace(':', '.')}-${end.replace(':', '.')}`
 }
 
-function addScheduleSheet(
-  wb: ExcelJS.Workbook,
-  title: string,
-  daySchedules: Period[][],
-  getCell: (day: number, period: Period) => CellContent | null,
-) {
-  const ws = wb.addWorksheet(sheetName(title))
-
-  ws.columns = [{ width: 5 }, ...DAYS.map(() => ({ width: 28 }))]
-  ws.views = [{ state: 'frozen', ySplit: 1 }]
-
-  const header = ws.addRow(['No', ...DAYS])
-  header.eachCell((cell) => {
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } }
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-    cell.alignment = { horizontal: 'center', vertical: 'middle' }
-    cell.border = BORDER
-  })
-
-  // Susunan jam tiap hari bisa berbeda, jadi baris disejajarkan per urutan slot
-  // dan waktu ditulis di dalam sel masing-masing.
-  const maxSlots = Math.max(0, ...daySchedules.map((periods) => periods.length))
-  for (let i = 0; i < maxSlots; i++) {
-    const slots = DAYS.map((_, day) => daySchedules[day]?.[i] ?? null)
-    const contents = slots.map((period, day) => {
-      if (!period) return null
-      const time = `${period.start}–${period.end}`
-      if (period.label !== null) {
-        return { text: `${time}\n${period.label.toUpperCase()}`, color: undefined }
-      }
-      const content = getCell(day, period)
-      return {
-        text: content ? `${time}\n${content.text}` : time,
-        color: content?.color,
-      }
-    })
-
-    const row = ws.addRow([i + 1, ...contents.map((c) => c?.text ?? '')])
-    row.height = 34
-    row.eachCell({ includeEmpty: true }, (cell, col) => {
-      if (col > 1 + DAYS.length) return
-      cell.border = BORDER
-      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      if (col === 1) return
-      const period = slots[col - 2]
-      const content = contents[col - 2]
-      if (period?.label != null) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACTIVITY_FILL } }
-        cell.font = { italic: true }
-      } else if (content?.color) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(content.color) } }
-      }
-    })
-  }
-}
-
+/**
+ * Layout satu sheet untuk seluruh sekolah:
+ * baris = hari (tersusun vertikal), kolom = kelas, isi sel = kode guru,
+ * plus legenda "KODE GURU" (kode | nama | mapel) di sisi kanan.
+ * Format ini juga yang dibaca kembali oleh importExcel.
+ */
 export async function exportToExcel(state: AppState) {
   // Dynamic import supaya exceljs (~940 kB) tidak masuk bundle awal.
   const { default: ExcelJS } = await import('exceljs')
   const subjectsById = new Map(state.subjects.map((s) => [s.id, s]))
   const teachersById = new Map(state.teachers.map((t) => [t.id, t]))
-  const classesById = new Map(state.classes.map((c) => [c.id, c]))
 
   const wb = new ExcelJS.Workbook()
   wb.created = new Date()
+  const ws = wb.addWorksheet('Jadwal Pelajaran')
 
-  for (const cls of state.classes) {
-    addScheduleSheet(wb, `Kelas ${cls.name}`, state.daySchedules, (day, period) => {
-      const entry = state.entries.find(
-        (e) => e.classId === cls.id && e.day === day && e.periodId === period.id,
-      )
-      if (!entry) return null
-      const subject = subjectsById.get(entry.subjectId)
-      const teacher = teachersById.get(entry.teacherId)
-      return {
-        text: `${subject?.name ?? '?'} — ${teacher?.code ?? '?'}`,
-        color: subject?.color,
-      }
-    })
+  const numClasses = state.classes.length
+  const firstClassCol = 4 // A=HARI, B=JAM KE-, C=WAKTU
+  const legendCol = firstClassCol + numClasses + 1 // satu kolom kosong sebagai pemisah
+  ws.columns = [
+    { width: 10 },
+    { width: 8 },
+    { width: 13 },
+    ...state.classes.map(() => ({ width: 11 })),
+    { width: 3 },
+    { width: 8 },
+    { width: 28 },
+    { width: 34 },
+  ]
+
+  // Judul
+  ws.mergeCells(1, 1, 1, firstClassCol + numClasses - 1)
+  const title = ws.getCell(1, 1)
+  title.value = 'JADWAL PELAJARAN'
+  title.font = { bold: true, size: 14 }
+  title.alignment = { horizontal: 'center' }
+
+  // Header (baris 3-5): HARI | JAM KE- | WAKTU | KELAS... + KODE GURU
+  const headerRow = 3
+  const dataStart = headerRow + 3
+  ws.mergeCells(headerRow, 1, headerRow + 2, 1)
+  ws.mergeCells(headerRow, 2, headerRow + 2, 2)
+  ws.mergeCells(headerRow, 3, headerRow + 2, 3)
+  ws.getCell(headerRow, 1).value = 'HARI'
+  ws.getCell(headerRow, 2).value = 'JAM KE-'
+  ws.getCell(headerRow, 3).value = 'WAKTU'
+  if (numClasses > 0) {
+    ws.mergeCells(headerRow, firstClassCol, headerRow, firstClassCol + numClasses - 1)
+    ws.getCell(headerRow, firstClassCol).value = 'KELAS'
+  }
+  state.classes.forEach((cls, i) => {
+    const col = firstClassCol + i
+    ws.mergeCells(headerRow + 1, col, headerRow + 2, col)
+    ws.getCell(headerRow + 1, col).value = cls.name
+  })
+  for (let c = 1; c < firstClassCol + numClasses; c++) {
+    for (const r of [headerRow, headerRow + 1, headerRow + 2]) {
+      const hc = ws.getCell(r, c)
+      hc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } }
+      hc.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      hc.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+      hc.border = BORDER
+    }
   }
 
-  for (const teacher of state.teachers) {
-    addScheduleSheet(wb, `Guru ${teacher.code} ${teacher.name}`, state.daySchedules, (day, period) => {
-      const slotEntries = state.entries.filter(
-        (e) => e.teacherId === teacher.id && e.day === day && e.periodId === period.id,
-      )
-      if (slotEntries.length === 0) return null
-      const text = slotEntries
-        .map((e) => {
-          const cls = classesById.get(e.classId)
-          const subject = subjectsById.get(e.subjectId)
-          return `${cls?.name ?? '?'} — ${subject?.name ?? '?'}`
-        })
-        .join(' / ')
-      const subject = subjectsById.get(slotEntries[0].subjectId)
-      return { text, color: subject?.color }
+  // Legenda KODE GURU
+  ws.mergeCells(headerRow, legendCol, headerRow, legendCol + 2)
+  const legendHead = ws.getCell(headerRow, legendCol)
+  legendHead.value = 'KODE GURU'
+  legendHead.font = { bold: true }
+  legendHead.alignment = { horizontal: 'center' }
+  legendHead.border = BORDER
+  const subjectsByTeacher = new Map<string, Set<string>>()
+  for (const e of state.entries) {
+    if (e.teacherId === null) continue
+    const subject = subjectsById.get(e.subjectId)
+    if (!subject) continue
+    const set = subjectsByTeacher.get(e.teacherId) ?? new Set<string>()
+    set.add(subject.name)
+    subjectsByTeacher.set(e.teacherId, set)
+  }
+  state.teachers.forEach((t, i) => {
+    const r = headerRow + 1 + i
+    const values = [t.code, t.name, [...(subjectsByTeacher.get(t.id) ?? [])].join(' / ')]
+    values.forEach((v, j) => {
+      const cell = ws.getCell(r, legendCol + j)
+      cell.value = v
+      cell.border = BORDER
+      cell.alignment = { vertical: 'middle', wrapText: true }
     })
+  })
+
+  // Isi jadwal per hari
+  const entryBySlot = new Map<string, (typeof state.entries)[number]>()
+  for (const e of state.entries) {
+    entryBySlot.set(`${e.day}|${e.periodId}|${e.classId}`, e)
+  }
+
+  let r = dataStart
+  for (let day = 0; day < DAYS.length; day++) {
+    const periods = state.daySchedules[day] ?? []
+    if (periods.length === 0) continue
+    const numbers = lessonNumbers(periods)
+    const blockStart = r
+
+    for (const period of periods) {
+      ws.getCell(r, 2).value = period.label !== null ? '' : numbers.get(period.id)
+      ws.getCell(r, 3).value = timeRange(period.start, period.end)
+
+      if (period.label !== null) {
+        state.classes.forEach((_, i) => {
+          ws.getCell(r, firstClassCol + i).value = period.label
+        })
+      } else {
+        state.classes.forEach((cls, i) => {
+          const entry = entryBySlot.get(`${day}|${period.id}|${cls.id}`)
+          if (!entry) return
+          const cell = ws.getCell(r, firstClassCol + i)
+          if (entry.teacherId !== null) {
+            cell.value = teachersById.get(entry.teacherId)?.code ?? '?'
+            const color = subjectsById.get(entry.subjectId)?.color
+            if (color) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(color) } }
+            }
+          } else {
+            // Kegiatan per kelas tanpa guru (mis. P5BK): tulis nama mapelnya.
+            cell.value = subjectsById.get(entry.subjectId)?.name ?? '?'
+          }
+        })
+      }
+
+      for (let c = 1; c < firstClassCol + numClasses; c++) {
+        const cell = ws.getCell(r, c)
+        cell.border = BORDER
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+        if (period.label !== null && c >= 2) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACTIVITY_FILL } }
+          cell.font = { italic: true }
+        }
+      }
+      r++
+    }
+
+    ws.mergeCells(blockStart, 1, r - 1, 1)
+    const dayCell = ws.getCell(blockStart, 1)
+    dayCell.value = DAYS[day].toUpperCase()
+    dayCell.font = { bold: true }
+    dayCell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 }
   }
 
   const buffer = await wb.xlsx.writeBuffer()

@@ -16,6 +16,7 @@ export interface ConflictInfo {
 export function findConflicts(entries: ScheduleEntry[]): ConflictInfo {
   const bySlot = new Map<string, ScheduleEntry[]>()
   for (const entry of entries) {
+    if (entry.teacherId === null) continue
     const key = `${entry.teacherId}|${entry.day}|${entry.periodId}`
     const group = bySlot.get(key)
     if (group) group.push(entry)
@@ -27,7 +28,7 @@ export function findConflicts(entries: ScheduleEntry[]): ConflictInfo {
   for (const group of bySlot.values()) {
     if (group.length < 2) continue
     groups.push({
-      teacherId: group[0].teacherId,
+      teacherId: group[0].teacherId!,
       day: group[0].day,
       periodId: group[0].periodId,
       entries: group,

@@ -47,11 +47,11 @@ export function ClassSchedulePage({ classId, onSelectClass }: ClassSchedulePageP
           )
           if (!entry) return <span className="empty-cell">+</span>
           const subject = subjectsById.get(entry.subjectId)
-          const teacher = teachersById.get(entry.teacherId)
+          const teacher = entry.teacherId !== null ? teachersById.get(entry.teacherId) : undefined
           return (
             <EntryCell
               title={subject?.name ?? '?'}
-              subtitle={teacher ? `${teacher.name} (${teacher.code})` : '?'}
+              subtitle={teacher ? `${teacher.name} (${teacher.code})` : ''}
               color={subject?.color}
               isConflict={conflicts.entryIds.has(entry.id)}
             />

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useSchedule } from './state/context'
 import { ScheduleProvider } from './state/ScheduleProvider'
 import { buildSeedState } from './state/seed'
 import { exportToExcel } from './utils/exportExcel'
+import { importFromExcelFile } from './utils/importExcel'
 import { ClassSchedulePage } from './components/ClassSchedulePage'
 import { TeacherSchedulePage } from './components/TeacherSchedulePage'
 import { MasterDataPage } from './components/master/MasterDataPage'
@@ -29,6 +30,7 @@ function Main() {
   const [tab, setTab] = useState<Tab>('class')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const classId = state.classes.some((c) => c.id === selectedClassId)
     ? selectedClassId!
@@ -43,6 +45,19 @@ function Main() {
   function loadSeed() {
     if (!isEmpty && !confirm('Data yang ada akan diganti dengan data contoh. Lanjutkan?')) return
     dispatch({ type: 'LOAD_STATE', state: buildSeedState() })
+  }
+
+  async function handleImportFile(file: File) {
+    try {
+      const { state: imported, summary, warnings } = await importFromExcelFile(file)
+      const warnText = warnings.length > 0 ? `\n\nCatatan:\n- ${warnings.join('\n- ')}` : ''
+      const replaceNote = isEmpty ? '' : '\n\nData saat ini akan diganti.'
+      if (!confirm(`Terbaca: ${summary}.${warnText}${replaceNote}\n\nLanjutkan import?`)) return
+      dispatch({ type: 'LOAD_STATE', state: imported })
+      setTab('class')
+    } catch (err) {
+      alert(`Gagal membaca file: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   return (
@@ -64,11 +79,29 @@ function Main() {
           >
             🖨 Cetak / PDF
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void handleImportFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            className="btn"
+            onClick={() => fileInputRef.current?.click()}
+            title="Baca file .xlsx berformat jadwal sekolah (hari vertikal, kolom kelas, kode guru + legenda KODE GURU)"
+          >
+            ⬆ Import Excel
+          </button>
           <button
             className="btn primary"
             onClick={() => void exportToExcel(state)}
             disabled={state.classes.length === 0 && state.teachers.length === 0}
-            title="Unduh .xlsx berisi satu sheet per kelas dan per guru"
+            title="Unduh .xlsx satu sheet: hari vertikal, kolom kelas, isi kode guru + legenda KODE GURU"
           >
             ⬇ Export Excel
           </button>
