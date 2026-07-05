@@ -66,12 +66,17 @@ export function parseScheduleWorkbook(wb: ExcelJS.Workbook): ImportResult {
     throw new Error('Header "HARI"/"WAKTU" tidak ditemukan. Pastikan formatnya sesuai.')
   }
 
-  // --- Cari legenda KODE GURU ---
+  // --- Cari legenda guru. Dukung dua bentuk header:
+  //     (a) satu sel merge "KODE GURU"  (b) tiga sel "Kode | Nama Guru | Mata Pelajaran".
+  //     Di kedua bentuk, kolom kode = legendCol, nama = +1, mapel = +2. ---
   let legendRow = -1
   let legendCol = -1
   for (let r = 1; r <= ws.rowCount && legendRow === -1; r++) {
     for (let c = waktuCol + 1; c <= ws.columnCount; c++) {
-      if (/^KODE\s*GURU$/i.test(cellText(ws, r, c))) {
+      const t = cellText(ws, r, c)
+      const merged = /^kode\s*guru$/i.test(t)
+      const triple = /^kode$/i.test(t) && /nama/i.test(cellText(ws, r, c + 1))
+      if (merged || triple) {
         legendRow = r
         legendCol = c
         break
@@ -142,7 +147,8 @@ export function parseScheduleWorkbook(wb: ExcelJS.Workbook): ImportResult {
     const parts: string[] = []
     for (let r = headerRow; r < dataStart; r++) {
       const t = cellText(ws, r, c)
-      if (t === '' || /^KELAS$/i.test(t) || /^KODE\s*GURU$/i.test(t)) continue
+      // Lewati sel header non-nama-kelas (termasuk header legenda kalau kebetulan sebaris).
+      if (t === '' || /^(kelas|kode\s*guru|kode|nama\s*guru|mata\s*pelajaran)$/i.test(t)) continue
       if (parts[parts.length - 1] !== t) parts.push(t)
     }
     const name = parts.join(' ').trim()
