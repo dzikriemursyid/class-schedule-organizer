@@ -1,5 +1,6 @@
 import type {
   AppState,
+  Assignment,
   ClassGroup,
   Period,
   ScheduleEntry,
@@ -9,8 +10,9 @@ import type {
 } from '../types'
 import { DAYS } from '../types'
 
-export const STORAGE_KEY = 'class-schedule-organizer:v2'
-const LEGACY_STORAGE_KEY = 'class-schedule-organizer:v1'
+export const STORAGE_KEY = 'class-schedule-organizer:v3'
+const LEGACY_KEY_V2 = 'class-schedule-organizer:v2'
+const LEGACY_KEY_V1 = 'class-schedule-organizer:v1'
 
 export type Action =
   | { type: 'ADD_TEACHER'; teacher: Teacher }
@@ -22,9 +24,13 @@ export type Action =
   | { type: 'ADD_CLASS'; classGroup: ClassGroup }
   | { type: 'UPDATE_CLASS'; classGroup: ClassGroup }
   | { type: 'REMOVE_CLASS'; id: string }
+  | { type: 'ADD_ASSIGNMENT'; assignment: Assignment }
+  | { type: 'UPDATE_ASSIGNMENT'; assignment: Assignment }
+  | { type: 'REMOVE_ASSIGNMENT'; id: string }
   | { type: 'SET_DAY_SCHEDULES'; daySchedules: Period[][] }
   | { type: 'SET_SLOTS'; slots: SlotAssignment[] }
   | { type: 'CLEAR_SLOT'; day: number; periodId: string; classId: string }
+  | { type: 'APPLY_ALLOCATION'; entries: ScheduleEntry[]; mode: 'fill' | 'overwrite' }
   | { type: 'LOAD_STATE'; state: AppState }
 
 type PeriodRow = [start: string, end: string, label: string | null]
@@ -71,12 +77,13 @@ export function makeDefaultDaySchedules(): Period[][] {
 
 export function initialState(): AppState {
   return {
-    version: 2,
+    version: 3,
     teachers: [],
     subjects: [],
     classes: [],
     daySchedules: makeDefaultDaySchedules(),
     entries: [],
+    assignments: [],
   }
 }
 
@@ -96,8 +103,17 @@ interface AppStateV1 {
   entries: ScheduleEntry[]
 }
 
+interface AppStateV2 {
+  version: 2
+  teachers: Teacher[]
+  subjects: Subject[]
+  classes: ClassGroup[]
+  daySchedules: Period[][]
+  entries: ScheduleEntry[]
+}
+
 /** Skema v1 punya satu susunan jam untuk semua hari; jadikan salinan per hari. */
-function migrateV1(old: AppStateV1): AppState {
+function migrateV1toV2(old: AppStateV1): AppStateV2 {
   const toV2 = (p: PeriodV1): Period => ({
     id: p.id,
     start: p.start,
@@ -115,18 +131,30 @@ function migrateV1(old: AppStateV1): AppState {
   }
 }
 
+/** v2 -> v3: cukup tambah tabel penugasan kosong; sisanya kompatibel. */
+function migrateV2toV3(old: AppStateV2): AppState {
+  return { ...old, version: 3, assignments: [] }
+}
+
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as AppState
-      if (parsed.version === 2 && Array.isArray(parsed.daySchedules)) return parsed
+      if (parsed.version === 3 && Array.isArray(parsed.assignments)) return parsed
       return initialState()
     }
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (legacy) {
-      const parsed = JSON.parse(legacy) as AppStateV1
-      if (parsed.version === 1 && Array.isArray(parsed.periods)) return migrateV1(parsed)
+    const v2 = localStorage.getItem(LEGACY_KEY_V2)
+    if (v2) {
+      const parsed = JSON.parse(v2) as AppStateV2
+      if (parsed.version === 2 && Array.isArray(parsed.daySchedules)) return migrateV2toV3(parsed)
+    }
+    const v1 = localStorage.getItem(LEGACY_KEY_V1)
+    if (v1) {
+      const parsed = JSON.parse(v1) as AppStateV1
+      if (parsed.version === 1 && Array.isArray(parsed.periods)) {
+        return migrateV2toV3(migrateV1toV2(parsed))
+      }
     }
     return initialState()
   } catch {
@@ -151,6 +179,7 @@ export function scheduleReducer(state: AppState, action: Action): AppState {
         ...state,
         teachers: state.teachers.filter((t) => t.id !== action.id),
         entries: state.entries.filter((e) => e.teacherId !== action.id),
+        assignments: state.assignments.filter((a) => a.teacherId !== action.id),
       }
     case 'ADD_SUBJECT':
       return { ...state, subjects: [...state.subjects, action.subject] }
@@ -164,6 +193,7 @@ export function scheduleReducer(state: AppState, action: Action): AppState {
         ...state,
         subjects: state.subjects.filter((s) => s.id !== action.id),
         entries: state.entries.filter((e) => e.subjectId !== action.id),
+        assignments: state.assignments.filter((a) => a.subjectId !== action.id),
       }
     case 'ADD_CLASS':
       return { ...state, classes: [...state.classes, action.classGroup] }
@@ -177,7 +207,22 @@ export function scheduleReducer(state: AppState, action: Action): AppState {
         ...state,
         classes: state.classes.filter((c) => c.id !== action.id),
         entries: state.entries.filter((e) => e.classId !== action.id),
+        assignments: state.assignments.filter((a) => a.classId !== action.id),
+        subjects: state.subjects.map((s) =>
+          s.classIds ? { ...s, classIds: s.classIds.filter((id) => id !== action.id) } : s,
+        ),
       }
+    case 'ADD_ASSIGNMENT':
+      return { ...state, assignments: [...state.assignments, action.assignment] }
+    case 'UPDATE_ASSIGNMENT':
+      return {
+        ...state,
+        assignments: state.assignments.map((a) =>
+          a.id === action.assignment.id ? action.assignment : a,
+        ),
+      }
+    case 'REMOVE_ASSIGNMENT':
+      return { ...state, assignments: state.assignments.filter((a) => a.id !== action.id) }
     case 'SET_DAY_SCHEDULES': {
       const lessonIdsPerDay = action.daySchedules.map(
         (periods) => new Set(periods.filter((p) => p.label === null).map((p) => p.id)),
@@ -201,6 +246,12 @@ export function scheduleReducer(state: AppState, action: Action): AppState {
       const key = slotKey(action)
       return { ...state, entries: state.entries.filter((e) => slotKey(e) !== key) }
     }
+    case 'APPLY_ALLOCATION':
+      return {
+        ...state,
+        entries:
+          action.mode === 'overwrite' ? action.entries : [...state.entries, ...action.entries],
+      }
     case 'LOAD_STATE':
       return action.state
   }

@@ -4,16 +4,20 @@ import { ScheduleProvider } from './state/ScheduleProvider'
 import { buildSeedState } from './state/seed'
 import { exportToExcel } from './utils/exportExcel'
 import { importFromExcelFile } from './utils/importExcel'
+import { OverviewGrid } from './components/OverviewGrid'
 import { ClassSchedulePage } from './components/ClassSchedulePage'
 import { TeacherSchedulePage } from './components/TeacherSchedulePage'
+import { AllocationPage } from './components/AllocationPage'
 import { MasterDataPage } from './components/master/MasterDataPage'
 import { ConflictBanner } from './components/ConflictBanner'
 
-type Tab = 'class' | 'teacher' | 'master'
+type Tab = 'overview' | 'class' | 'teacher' | 'alokasi' | 'master'
 
 const TABS: Array<{ id: Tab; label: string }> = [
+  { id: 'overview', label: 'Keseluruhan' },
   { id: 'class', label: 'Jadwal per Kelas' },
   { id: 'teacher', label: 'Jadwal per Guru' },
+  { id: 'alokasi', label: 'Alokasi Otomatis' },
   { id: 'master', label: 'Data Master' },
 ]
 
@@ -27,7 +31,7 @@ export default function App() {
 
 function Main() {
   const { state, dispatch } = useSchedule()
-  const [tab, setTab] = useState<Tab>('class')
+  const [tab, setTab] = useState<Tab>('overview')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -130,6 +134,16 @@ function Main() {
       </nav>
 
       <main>
+        {tab === 'overview' &&
+          (state.classes.length > 0 ? (
+            <OverviewGrid />
+          ) : (
+            <EmptyState
+              message="Belum ada kelas."
+              onLoadSeed={loadSeed}
+              onGoMaster={() => setTab('master')}
+            />
+          ))}
         {tab === 'class' &&
           (classId ? (
             <ClassSchedulePage classId={classId} onSelectClass={setSelectedClassId} />
@@ -150,6 +164,7 @@ function Main() {
               onGoMaster={() => setTab('master')}
             />
           ))}
+        {tab === 'alokasi' && <AllocationPage onGoMaster={() => setTab('master')} />}
         {tab === 'master' && <MasterDataPage />}
       </main>
     </div>

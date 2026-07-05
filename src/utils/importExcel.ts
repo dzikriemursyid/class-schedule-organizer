@@ -243,12 +243,13 @@ export function parseScheduleWorkbook(wb: ExcelJS.Workbook): ImportResult {
   }
 
   const state: AppState = {
-    version: 2,
+    version: 3,
     teachers,
     subjects,
     classes,
     daySchedules,
     entries,
+    assignments: [],
   }
 
   const summary =

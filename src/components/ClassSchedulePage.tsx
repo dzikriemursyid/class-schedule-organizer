@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Period } from '../types'
+import { teacherLabel, type Period } from '../types'
 import { useSchedule } from '../state/context'
 import { ScheduleGrid } from './ScheduleGrid'
 import { EntryCell } from './EntryCell'
@@ -51,7 +51,7 @@ export function ClassSchedulePage({ classId, onSelectClass }: ClassSchedulePageP
           return (
             <EntryCell
               title={subject?.name ?? '?'}
-              subtitle={teacher ? `${teacher.name} (${teacher.code})` : ''}
+              subtitle={teacher ? teacherLabel(teacher) : ''}
               color={subject?.color}
               isConflict={conflicts.entryIds.has(entry.id)}
             />

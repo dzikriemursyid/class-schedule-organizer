@@ -1,22 +1,26 @@
 import { useMemo, useState } from 'react'
-import { DAYS, lessonNumbers, type Period, type SlotAssignment } from '../types'
+import { DAYS, lessonNumbers, teacherLabel, type Period, type SlotAssignment } from '../types'
 import { useSchedule } from '../state/context'
 
 interface EntryDialogProps {
   classId: string
   day: number
   period: Period
+  /** Guru default saat mengisi sel kosong (mis. dari tab per Guru). */
+  defaultTeacherId?: string
   onClose: () => void
 }
 
-export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps) {
+export function EntryDialog({ classId, day, period, defaultTeacherId, onClose }: EntryDialogProps) {
   const { state, dispatch } = useSchedule()
 
   const existing = state.entries.find(
     (e) => e.classId === classId && e.day === day && e.periodId === period.id,
   )
   const [subjectId, setSubjectId] = useState(existing?.subjectId ?? '')
-  const [teacherId, setTeacherId] = useState(existing?.teacherId ?? '')
+  const [teacherId, setTeacherId] = useState(
+    existing ? (existing.teacherId ?? '') : (defaultTeacherId ?? ''),
+  )
   const [span, setSpan] = useState(1)
 
   const className = state.classes.find((c) => c.id === classId)?.name ?? '?'
@@ -90,7 +94,8 @@ export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps)
               const busyIn = busyTeachers.get(t.id)
               return (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({t.code}){busyIn ? ` — ⚠ sudah mengajar ${busyIn}` : ''}
+                  {teacherLabel(t)}
+                  {busyIn ? ` — ⚠ sudah mengajar ${busyIn}` : ''}
                 </option>
               )
             })}

@@ -332,6 +332,101 @@ body {
   gap: 0.2rem;
 }
 
+/* ---------- Overview (semua kelas) ---------- */
+
+.overview-wrapper {
+  overflow-x: auto;
+}
+
+.overview-grid {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.overview-grid th,
+.overview-grid td {
+  border: 1px solid var(--border);
+  padding: 0.2rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.overview-grid thead th {
+  position: sticky;
+  top: 0;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 0.35rem;
+  z-index: 1;
+  min-width: 8.5rem;
+}
+
+.overview-grid thead th.col-day,
+.overview-grid thead th.col-num,
+.overview-grid thead th.col-time {
+  min-width: 0;
+}
+
+.overview-grid .col-day {
+  width: 2rem;
+  background: #eef2f7;
+  font-weight: 700;
+}
+
+.overview-grid .day-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+}
+
+.overview-grid .col-num {
+  width: 2.6rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.overview-grid .col-time {
+  width: 6rem;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.overview-grid td.cell {
+  padding: 0.15rem;
+  min-width: 8.5rem;
+}
+
+.overview-grid td.cell.clickable {
+  cursor: pointer;
+}
+
+.overview-grid td.cell.clickable:hover {
+  background: #eff6ff;
+}
+
+.overview-grid .activity-row td {
+  background: #e2e8f0;
+}
+
+.overview-grid .activity-span {
+  font-style: italic;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.class-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
 /* ---------- Modal ---------- */
 
 .modal-overlay {
@@ -490,6 +585,90 @@ body {
   border: 1px solid rgba(15, 23, 42, 0.15);
 }
 
+.tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  background: #eef2f7;
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+/* ---------- Chip toggles (kelas yang boleh) ---------- */
+
+.chip-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.chip {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.chip.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+/* ---------- Teacher availability grid ---------- */
+
+.modal-wide {
+  max-width: 34rem;
+}
+
+.avail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.avail-day {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avail-dayname {
+  width: 5rem;
+  flex: 0 0 auto;
+  text-align: left;
+}
+
+.avail-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.avail-slot {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #065f46;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.avail-slot.off {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+  text-decoration: line-through;
+}
+
 .add-form {
   display: flex;
   flex-wrap: wrap;
@@ -620,4 +799,156 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* ---------- Alokasi Otomatis ---------- */
+
+.success-banner {
+  background: #ecfdf5;
+  border: 1px solid #34d399;
+  color: #065f46;
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.alloc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.load-chip {
+  display: inline-block;
+  background: #eef2f7;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.load-chip.over {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.alloc-actions {
+  margin-top: 1rem;
+}
+
+.assign-table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.assign-table th,
+.assign-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.3rem 0.45rem;
+  text-align: left;
+}
+
+.assign-table th {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.assign-table select,
+.assign-table .jp-input {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: var(--surface);
+}
+
+.assign-table td.empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0.8rem;
+}
+
+.assign-add {
+  margin-top: 0.6rem;
+}
+
+.assign-add select,
+.assign-add .jp-input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.assign-add select {
+  flex: 1;
+  min-width: 7rem;
+}
+
+.jp-input {
+  width: 4.5rem;
+}
+
+.jp-input.over {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.hint.warn {
+  color: var(--danger);
+}
+
+.mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.mode-options .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+}
+
+.result-panel {
+  margin-top: 1rem;
+  border: 1px solid var(--primary);
+}
+
+.result-ok {
+  color: #065f46;
+  font-weight: 600;
+}
+
+.result-warn {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.result-block {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.result-block ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.result-block li {
+  margin-bottom: 0.2rem;
 }

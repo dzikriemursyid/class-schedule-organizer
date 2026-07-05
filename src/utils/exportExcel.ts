@@ -138,7 +138,9 @@ export async function exportToExcel(state: AppState) {
           if (!entry) return
           const cell = ws.getCell(r, firstClassCol + i)
           if (entry.teacherId !== null) {
-            cell.value = teachersById.get(entry.teacherId)?.code ?? '?'
+            const t = teachersById.get(entry.teacherId)
+            // Kode kosong → pakai nama (opsi "tampilkan nama saja").
+            cell.value = t ? (t.code.trim() !== '' ? t.code : t.name) : '?'
             const color = subjectsById.get(entry.subjectId)?.color
             if (color) {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(color) } }

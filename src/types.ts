@@ -18,18 +18,46 @@ export const SUBJECT_COLORS = [
 export interface Teacher {
   id: string
   name: string
+  /** Kode/inisial singkat; boleh kosong ('') — tampilan pakai nama kalau kosong. */
   code: string
+  /** Batas maksimum jam pelajaran mengajar per hari (opsional). */
+  maxPerDay?: number
+  /** Slot "${day}|${periodId}" saat guru tidak bisa mengajar. */
+  unavailable?: string[]
 }
+
+export type Distribution = 'sebar' | 'ganda' | 'blok'
+export type TimePreference = 'pagi' | 'bebas'
+
+/** Ambang "pagi": blok bertanda 'pagi' harus mulai di jam ke- <= nilai ini. */
+export const PAGI_THRESHOLD = 4
 
 export interface Subject {
   id: string
   name: string
   color: string
+  /** JP/minggu per kelas — dipakai sebagai default & batas atas JP penugasan. */
+  maxJpPerWeek?: number
+  /** Kelas yang boleh mengambil mapel ini; undefined/kosong = semua kelas. */
+  classIds?: string[]
+  /** Cara memecah JP ke slot; default 'sebar'. */
+  distribution?: Distribution
+  /** Preferensi waktu; default 'bebas'. */
+  timePreference?: TimePreference
 }
 
 export interface ClassGroup {
   id: string
   name: string
+}
+
+export interface Assignment {
+  id: string
+  teacherId: string
+  subjectId: string
+  classId: string
+  /** Jumlah jam pelajaran per minggu. */
+  jp: number
 }
 
 export interface Period {
@@ -59,13 +87,26 @@ export interface SlotAssignment {
 }
 
 export interface AppState {
-  version: 2
+  version: 3
   teachers: Teacher[]
   subjects: Subject[]
   classes: ClassGroup[]
   /** Susunan jam per hari, index mengikuti DAYS (0 = Senin .. 4 = Jumat). */
   daySchedules: Period[][]
   entries: ScheduleEntry[]
+  /** Penugasan mengajar (input untuk alokasi otomatis). */
+  assignments: Assignment[]
+}
+
+/** Kelas yang boleh mengambil sebuah mapel (classIds kosong/undefined = semua). */
+export function subjectClassIds(subject: Subject, allClasses: ClassGroup[]): string[] {
+  if (!subject.classIds || subject.classIds.length === 0) return allClasses.map((c) => c.id)
+  return subject.classIds
+}
+
+/** Label tampilan guru: "Nama (KODE)" atau hanya "Nama" bila kode kosong. */
+export function teacherLabel(teacher: Pick<Teacher, 'name' | 'code'>): string {
+  return teacher.code.trim() !== '' ? `${teacher.name} (${teacher.code})` : teacher.name
 }
 
 /** Nomor "jam ke-" per period; slot kegiatan (label terisi) tidak ikut dihitung. */

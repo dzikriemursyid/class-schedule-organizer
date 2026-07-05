@@ -6,8 +6,10 @@ description: Build, launch, and drive the class-schedule-organizer app (Vite + R
 # Verifying class-schedule-organizer
 
 Static React SPA, no backend. All state lives in `localStorage` under
-`class-schedule-organizer:v2` (v1 key is auto-migrated on load — worth
-re-testing when the schema changes).
+`class-schedule-organizer:v3` (v1 & v2 keys are auto-migrated on load —
+worth re-testing when the schema changes). v3 adds `assignments`
+(penugasan mengajar), optional `Teacher.code`/`maxPerDay`/`unavailable`,
+and `Subject.maxJpPerWeek`/`classIds`/`distribution`/`timePreference`.
 
 ## Build & launch
 
@@ -36,6 +38,9 @@ Flows worth driving:
 5. "Export Excel" → wait for `download` event, save, re-read with `exceljs` (already a dependency). Format: SATU sheet gaya jadwal sekolah — judul, header 3 baris (HARI|JAM KE-|WAKTU|KELAS...), hari tersusun vertikal (HARI di-merge per blok), waktu "07.40-08.20" (titik), isi sel = kode guru (atau nama mapel untuk entri tanpa guru, mis. P5BK), legenda "KODE GURU" (kode|nama|mapel) di kolom kanan.
 5b. "Import Excel" (hidden `input[type=file]`, pakai `setInputFiles`) membaca format yang sama — uji dengan file asli `JADWAL PELAJARAN 2425.xlsx` di root repo dan dengan hasil export (round-trip: jumlah kelas/guru/entri harus sama). Konfirmasi import memakai `confirm()` berisi ringkasan; file tak valid → `alert()` tanpa mengubah data.
 6. Print: `page.emulateMedia({ media: 'print' })` + screenshot — only `.print-title` + grid should be visible (`.no-print` hidden).
+7. Tab "Keseluruhan" (`.overview-grid`, default tab): semua kelas jadi kolom, hari ditumpuk vertikal; sel `td.cell` clickable → EntryDialog. Edit di sini langsung sinkron ke tab per Kelas/per Guru (satu state reducer).
+8. Tab "Alokasi Otomatis": editor penugasan (`.assign-table`), tombol "Jalankan Alokasi" → dialog mode (`.mode-options`: Isi slot kosong / Timpa semua) → panel hasil (`.result-panel`) → "Terapkan ke Jadwal" (dispatch APPLY_ALLOCATION). Solver di `src/utils/allocate.ts` (murni) — assert `findConflicts` = 0, mapel `pagi` (PJOK) hanya di jam awal, mapel `blok` (Informatika) kontigu, `unavailable`/`maxPerDay` dipatuhi. Mode fill mempertahankan entri manual.
+9. Tab per Guru kini editable: klik sel kosong → `.class-picker` (pilih kelas) → EntryDialog dengan guru ter-prefill (`defaultTeacherId`).
 
 ## Gotchas
 
