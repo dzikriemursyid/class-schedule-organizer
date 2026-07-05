@@ -39,7 +39,7 @@ export function ClassSchedulePage({ classId, onSelectClass }: ClassSchedulePageP
       <h2 className="print-title">Jadwal Pelajaran Kelas {selectedClass.name}</h2>
 
       <ScheduleGrid
-        periods={state.periods}
+        daySchedules={state.daySchedules}
         onCellClick={(day, period) => setEditingSlot({ day, period })}
         renderCell={(day, period) => {
           const entry = state.entries.find(

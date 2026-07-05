@@ -17,13 +17,14 @@
     box-shadow: none;
   }
 
-  .schedule-grid {
+  .day-columns {
     min-width: 0;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    padding: 0;
   }
 
-  .schedule-grid thead th,
-  .break-row td,
+  .day-head,
+  .slot.activity,
   .entry-chip {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;

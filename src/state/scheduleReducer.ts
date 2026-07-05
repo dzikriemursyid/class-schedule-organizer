@@ -7,8 +7,10 @@ import type {
   Subject,
   Teacher,
 } from '../types'
+import { DAYS } from '../types'
 
-export const STORAGE_KEY = 'class-schedule-organizer:v1'
+export const STORAGE_KEY = 'class-schedule-organizer:v2'
+const LEGACY_STORAGE_KEY = 'class-schedule-organizer:v1'
 
 export type Action =
   | { type: 'ADD_TEACHER'; teacher: Teacher }
@@ -20,45 +22,113 @@ export type Action =
   | { type: 'ADD_CLASS'; classGroup: ClassGroup }
   | { type: 'UPDATE_CLASS'; classGroup: ClassGroup }
   | { type: 'REMOVE_CLASS'; id: string }
-  | { type: 'SET_PERIODS'; periods: Period[] }
+  | { type: 'SET_DAY_SCHEDULES'; daySchedules: Period[][] }
   | { type: 'SET_SLOTS'; slots: SlotAssignment[] }
   | { type: 'CLEAR_SLOT'; day: number; periodId: string; classId: string }
   | { type: 'LOAD_STATE'; state: AppState }
 
-export function makeDefaultPeriods(): Period[] {
-  const rows: Array<[string, string, string, boolean]> = [
-    ['p1', '07:00', '07:45', false],
-    ['p2', '07:45', '08:30', false],
-    ['p3', '08:30', '09:15', false],
-    ['p4', '09:15', '09:35', true],
-    ['p5', '09:35', '10:20', false],
-    ['p6', '10:20', '11:05', false],
-    ['p7', '11:05', '11:50', false],
-    ['p8', '11:50', '12:30', true],
-    ['p9', '12:30', '13:15', false],
-    ['p10', '13:15', '14:00', false],
+type PeriodRow = [start: string, end: string, label: string | null]
+
+const STANDARD_DAY: PeriodRow[] = [
+  ['07:00', '07:45', null],
+  ['07:45', '08:30', null],
+  ['08:30', '09:15', null],
+  ['09:15', '09:35', 'Istirahat'],
+  ['09:35', '10:20', null],
+  ['10:20', '11:05', null],
+  ['11:05', '11:50', null],
+  ['11:50', '12:30', 'Istirahat'],
+  ['12:30', '13:15', null],
+  ['13:15', '14:00', null],
+]
+
+const SENIN: PeriodRow[] = [['07:00', '07:45', 'Upacara'], ...STANDARD_DAY.slice(1)]
+
+const JUMAT: PeriodRow[] = [
+  ['07:00', '07:40', null],
+  ['07:40', '08:20', null],
+  ['08:20', '09:00', null],
+  ['09:00', '09:20', 'Istirahat'],
+  ['09:20', '10:00', null],
+  ['10:00', '10:40', null],
+  ['10:40', '11:20', null],
+  ['11:20', '13:00', 'Solat Jumat'],
+]
+
+function makeDay(prefix: string, rows: PeriodRow[]): Period[] {
+  return rows.map(([start, end, label], i) => ({ id: `${prefix}-${i + 1}`, start, end, label }))
+}
+
+export function makeDefaultDaySchedules(): Period[][] {
+  return [
+    makeDay('sen', SENIN),
+    makeDay('sel', STANDARD_DAY),
+    makeDay('rab', STANDARD_DAY),
+    makeDay('kam', STANDARD_DAY),
+    makeDay('jum', JUMAT),
   ]
-  return rows.map(([id, start, end, isBreak]) => ({ id, start, end, isBreak }))
 }
 
 export function initialState(): AppState {
   return {
-    version: 1,
+    version: 2,
     teachers: [],
     subjects: [],
     classes: [],
-    periods: makeDefaultPeriods(),
+    daySchedules: makeDefaultDaySchedules(),
     entries: [],
+  }
+}
+
+interface PeriodV1 {
+  id: string
+  start: string
+  end: string
+  isBreak: boolean
+}
+
+interface AppStateV1 {
+  version: 1
+  teachers: Teacher[]
+  subjects: Subject[]
+  classes: ClassGroup[]
+  periods: PeriodV1[]
+  entries: ScheduleEntry[]
+}
+
+/** Skema v1 punya satu susunan jam untuk semua hari; jadikan salinan per hari. */
+function migrateV1(old: AppStateV1): AppState {
+  const toV2 = (p: PeriodV1): Period => ({
+    id: p.id,
+    start: p.start,
+    end: p.end,
+    label: p.isBreak ? 'Istirahat' : null,
+  })
+  return {
+    version: 2,
+    teachers: old.teachers,
+    subjects: old.subjects,
+    classes: old.classes,
+    // Id period sengaja sama di tiap hari agar entry lama (day + periodId) tetap valid.
+    daySchedules: DAYS.map(() => old.periods.map(toV2)),
+    entries: old.entries,
   }
 }
 
 export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return initialState()
-    const parsed = JSON.parse(raw) as AppState
-    if (parsed.version !== 1 || !Array.isArray(parsed.periods)) return initialState()
-    return parsed
+    if (raw) {
+      const parsed = JSON.parse(raw) as AppState
+      if (parsed.version === 2 && Array.isArray(parsed.daySchedules)) return parsed
+      return initialState()
+    }
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as AppStateV1
+      if (parsed.version === 1 && Array.isArray(parsed.periods)) return migrateV1(parsed)
+    }
+    return initialState()
   } catch {
     return initialState()
   }
@@ -108,12 +178,14 @@ export function scheduleReducer(state: AppState, action: Action): AppState {
         classes: state.classes.filter((c) => c.id !== action.id),
         entries: state.entries.filter((e) => e.classId !== action.id),
       }
-    case 'SET_PERIODS': {
-      const lessonIds = new Set(action.periods.filter((p) => !p.isBreak).map((p) => p.id))
+    case 'SET_DAY_SCHEDULES': {
+      const lessonIdsPerDay = action.daySchedules.map(
+        (periods) => new Set(periods.filter((p) => p.label === null).map((p) => p.id)),
+      )
       return {
         ...state,
-        periods: action.periods,
-        entries: state.entries.filter((e) => lessonIds.has(e.periodId)),
+        daySchedules: action.daySchedules,
+        entries: state.entries.filter((e) => lessonIdsPerDay[e.day]?.has(e.periodId)),
       }
     }
     case 'SET_SLOTS': {

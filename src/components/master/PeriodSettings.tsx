@@ -1,71 +1,102 @@
 import { useState } from 'react'
-import { lessonNumbers, type Period } from '../../types'
+import { DAYS, lessonNumbers, type Period } from '../../types'
 import { useSchedule } from '../../state/context'
 
 export function PeriodSettings() {
   const { state, dispatch } = useSchedule()
-  const [draft, setDraft] = useState<Period[]>(state.periods)
-  const [savedPeriods, setSavedPeriods] = useState(state.periods)
+  const [draft, setDraft] = useState<Period[][]>(state.daySchedules)
+  const [savedSchedules, setSavedSchedules] = useState(state.daySchedules)
+  const [activeDay, setActiveDay] = useState(0)
+  const [copyFrom, setCopyFrom] = useState(1)
 
-  // Resync draft ketika jam pelajaran di state berubah (mis. setelah muat data contoh).
-  if (savedPeriods !== state.periods) {
-    setSavedPeriods(state.periods)
-    setDraft(state.periods)
+  // Resync draft ketika jadwal jam di state berubah (mis. setelah muat data contoh).
+  if (savedSchedules !== state.daySchedules) {
+    setSavedSchedules(state.daySchedules)
+    setDraft(state.daySchedules)
   }
 
-  const numbers = lessonNumbers(draft)
-  const dirty = JSON.stringify(draft) !== JSON.stringify(state.periods)
+  const dayPeriods = draft[activeDay] ?? []
+  const numbers = lessonNumbers(dayPeriods)
+  const dirty = JSON.stringify(draft) !== JSON.stringify(state.daySchedules)
+
+  function updateDay(day: number, periods: Period[]) {
+    setDraft((d) => d.map((p, i) => (i === day ? periods : p)))
+  }
 
   function update(id: string, patch: Partial<Period>) {
-    setDraft((d) => d.map((p) => (p.id === id ? { ...p, ...patch } : p)))
+    updateDay(
+      activeDay,
+      dayPeriods.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    )
   }
 
   function addPeriod() {
-    const last = draft[draft.length - 1]
-    setDraft((d) => [
-      ...d,
+    const last = dayPeriods[dayPeriods.length - 1]
+    updateDay(activeDay, [
+      ...dayPeriods,
       {
         id: crypto.randomUUID(),
         start: last?.end ?? '07:00',
         end: last?.end ?? '07:45',
-        isBreak: false,
+        label: null,
       },
     ])
   }
 
   function removePeriod(id: string) {
-    setDraft((d) => d.filter((p) => p.id !== id))
+    updateDay(
+      activeDay,
+      dayPeriods.filter((p) => p.id !== id),
+    )
+  }
+
+  function copyDay() {
+    updateDay(activeDay, draft[copyFrom].map((p) => ({ ...p })))
   }
 
   function save() {
-    const lessonIds = new Set(draft.filter((p) => !p.isBreak).map((p) => p.id))
-    const dropped = state.entries.filter((e) => !lessonIds.has(e.periodId)).length
+    const lessonIdsPerDay = draft.map(
+      (periods) => new Set(periods.filter((p) => p.label === null).map((p) => p.id)),
+    )
+    const dropped = state.entries.filter((e) => !lessonIdsPerDay[e.day]?.has(e.periodId)).length
     if (
       dropped > 0 &&
       !confirm(`Perubahan ini akan menghapus ${dropped} jadwal pada jam yang hilang. Lanjutkan?`)
     ) {
       return
     }
-    dispatch({ type: 'SET_PERIODS', periods: draft })
+    dispatch({ type: 'SET_DAY_SCHEDULES', daySchedules: draft })
   }
 
   return (
     <div className="card">
-      <h3>Jam Pelajaran</h3>
+      <h3>Jam Pelajaran per Hari</h3>
+      <div className="day-tabs">
+        {DAYS.map((name, day) => (
+          <button
+            key={name}
+            className={day === activeDay ? 'day-tab active' : 'day-tab'}
+            onClick={() => setActiveDay(day)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      <p className="hint">Kosongkan kolom "Kegiatan" untuk jam pelajaran biasa.</p>
       <table className="period-table">
         <thead>
           <tr>
             <th>Jam ke-</th>
             <th>Mulai</th>
             <th>Selesai</th>
-            <th>Istirahat</th>
+            <th>Kegiatan</th>
             <th />
           </tr>
         </thead>
         <tbody>
-          {draft.map((p) => (
+          {dayPeriods.map((p) => (
             <tr key={p.id}>
-              <td>{p.isBreak ? '—' : numbers.get(p.id)}</td>
+              <td>{p.label !== null ? '—' : numbers.get(p.id)}</td>
               <td>
                 <input
                   type="time"
@@ -82,9 +113,11 @@ export function PeriodSettings() {
               </td>
               <td>
                 <input
-                  type="checkbox"
-                  checked={p.isBreak}
-                  onChange={(e) => update(p.id, { isBreak: e.target.checked })}
+                  type="text"
+                  className="input-label"
+                  placeholder="mis. Upacara"
+                  value={p.label ?? ''}
+                  onChange={(e) => update(p.id, { label: e.target.value || null })}
                 />
               </td>
               <td>
@@ -100,18 +133,37 @@ export function PeriodSettings() {
         <button className="btn" onClick={addPeriod}>
           + Tambah slot
         </button>
-        <span className="spacer" />
-        {dirty && (
-          <>
-            <button className="btn" onClick={() => setDraft(state.periods)}>
-              Batalkan
-            </button>
-            <button className="btn primary" onClick={save}>
-              Simpan Jam Pelajaran
-            </button>
-          </>
-        )}
+        <select
+          value={copyFrom}
+          onChange={(e) => setCopyFrom(Number(e.target.value))}
+          title="Sumber salinan susunan jam"
+        >
+          {DAYS.map((name, day) => (
+            <option key={name} value={day} disabled={day === activeDay}>
+              dari {name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="btn"
+          onClick={copyDay}
+          disabled={copyFrom === activeDay}
+          title={`Salin susunan jam ${DAYS[copyFrom]} ke ${DAYS[activeDay]}`}
+        >
+          Salin
+        </button>
       </div>
+      {dirty && (
+        <div className="add-form save-row">
+          <span className="spacer" />
+          <button className="btn" onClick={() => setDraft(state.daySchedules)}>
+            Batalkan
+          </button>
+          <button className="btn primary" onClick={save}>
+            Simpan Jam Pelajaran
+          </button>
+        </div>
+      )}
     </div>
   )
 }

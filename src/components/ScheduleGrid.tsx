@@ -2,56 +2,52 @@ import type { ReactNode } from 'react'
 import { DAYS, lessonNumbers, type Period } from '../types'
 
 interface ScheduleGridProps {
-  periods: Period[]
+  daySchedules: Period[][]
   renderCell: (day: number, period: Period) => ReactNode
   onCellClick?: (day: number, period: Period) => void
 }
 
-export function ScheduleGrid({ periods, renderCell, onCellClick }: ScheduleGridProps) {
-  const numbers = lessonNumbers(periods)
-
+/**
+ * Grid mingguan berbentuk kolom per hari. Tiap hari punya susunan jam sendiri
+ * (jumlah slot, waktu, dan kegiatan seperti Upacara/Solat Jumat bisa berbeda),
+ * jadi waktu ditampilkan di tiap slot, bukan sebagai kolom bersama.
+ */
+export function ScheduleGrid({ daySchedules, renderCell, onCellClick }: ScheduleGridProps) {
   return (
     <div className="grid-wrapper">
-      <table className="schedule-grid">
-        <thead>
-          <tr>
-            <th className="col-num">Jam ke-</th>
-            <th className="col-time">Waktu</th>
-            {DAYS.map((day) => (
-              <th key={day}>{day}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {periods.map((period) =>
-            period.isBreak ? (
-              <tr key={period.id} className="break-row">
-                <td />
-                <td className="col-time">
-                  {period.start}–{period.end}
-                </td>
-                <td colSpan={DAYS.length}>ISTIRAHAT</td>
-              </tr>
-            ) : (
-              <tr key={period.id}>
-                <td className="col-num">{numbers.get(period.id)}</td>
-                <td className="col-time">
-                  {period.start}–{period.end}
-                </td>
-                {DAYS.map((_, day) => (
-                  <td
-                    key={day}
-                    className={onCellClick ? 'cell clickable' : 'cell'}
+      <div className="day-columns">
+        {DAYS.map((dayName, day) => {
+          const periods = daySchedules[day] ?? []
+          const numbers = lessonNumbers(periods)
+          return (
+            <div className="day-col" key={dayName}>
+              <div className="day-head">{dayName}</div>
+              {periods.map((period) =>
+                period.label !== null ? (
+                  <div key={period.id} className="slot activity">
+                    <span className="slot-meta">
+                      {period.start}–{period.end}
+                    </span>
+                    <span className="activity-label">{period.label}</span>
+                  </div>
+                ) : (
+                  <div
+                    key={period.id}
+                    className={onCellClick ? 'slot lesson clickable' : 'slot lesson'}
                     onClick={onCellClick ? () => onCellClick(day, period) : undefined}
                   >
-                    {renderCell(day, period)}
-                  </td>
-                ))}
-              </tr>
-            ),
-          )}
-        </tbody>
-      </table>
+                    <span className="slot-meta">
+                      <span className="slot-num">{numbers.get(period.id)}</span> {period.start}–
+                      {period.end}
+                    </span>
+                    <div className="slot-content">{renderCell(day, period)}</div>
+                  </div>
+                ),
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

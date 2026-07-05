@@ -37,7 +37,7 @@ export function TeacherSchedulePage({ teacherId, onSelectTeacher }: TeacherSched
       </h2>
 
       <ScheduleGrid
-        periods={state.periods}
+        daySchedules={state.daySchedules}
         renderCell={(day, period) => {
           const slotEntries = state.entries.filter(
             (e) => e.teacherId === teacherId && e.day === day && e.periodId === period.id,

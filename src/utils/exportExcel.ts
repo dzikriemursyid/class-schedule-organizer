@@ -1,8 +1,8 @@
 import type ExcelJS from 'exceljs'
-import { DAYS, lessonNumbers, type AppState, type Period } from '../types'
+import { DAYS, type AppState, type Period } from '../types'
 
 const HEADER_FILL = 'FF1E3A5F'
-const BREAK_FILL = 'FFE2E8F0'
+const ACTIVITY_FILL = 'FFE2E8F0'
 const BORDER = {
   top: { style: 'thin' },
   left: { style: 'thin' },
@@ -26,20 +26,15 @@ function sheetName(name: string): string {
 function addScheduleSheet(
   wb: ExcelJS.Workbook,
   title: string,
-  periods: Period[],
+  daySchedules: Period[][],
   getCell: (day: number, period: Period) => CellContent | null,
 ) {
   const ws = wb.addWorksheet(sheetName(title))
-  const numbers = lessonNumbers(periods)
 
-  ws.columns = [
-    { width: 9 },
-    { width: 15 },
-    ...DAYS.map(() => ({ width: 26 })),
-  ]
+  ws.columns = [{ width: 5 }, ...DAYS.map(() => ({ width: 28 }))]
   ws.views = [{ state: 'frozen', ySplit: 1 }]
 
-  const header = ws.addRow(['Jam ke-', 'Waktu', ...DAYS])
+  const header = ws.addRow(['No', ...DAYS])
   header.eachCell((cell) => {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } }
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
@@ -47,34 +42,37 @@ function addScheduleSheet(
     cell.border = BORDER
   })
 
-  for (const period of periods) {
-    const time = `${period.start}–${period.end}`
-    if (period.isBreak) {
-      const row = ws.addRow(['', time, 'ISTIRAHAT'])
-      ws.mergeCells(row.number, 3, row.number, 2 + DAYS.length)
-      row.eachCell({ includeEmpty: true }, (cell, col) => {
-        if (col > 2 + DAYS.length) return
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BREAK_FILL } }
-        cell.alignment = { horizontal: 'center', vertical: 'middle' }
-        cell.font = { italic: true }
-        cell.border = BORDER
-      })
-      continue
-    }
+  // Susunan jam tiap hari bisa berbeda, jadi baris disejajarkan per urutan slot
+  // dan waktu ditulis di dalam sel masing-masing.
+  const maxSlots = Math.max(0, ...daySchedules.map((periods) => periods.length))
+  for (let i = 0; i < maxSlots; i++) {
+    const slots = DAYS.map((_, day) => daySchedules[day]?.[i] ?? null)
+    const contents = slots.map((period, day) => {
+      if (!period) return null
+      const time = `${period.start}–${period.end}`
+      if (period.label !== null) {
+        return { text: `${time}\n${period.label.toUpperCase()}`, color: undefined }
+      }
+      const content = getCell(day, period)
+      return {
+        text: content ? `${time}\n${content.text}` : time,
+        color: content?.color,
+      }
+    })
 
-    const contents = DAYS.map((_, day) => getCell(day, period))
-    const row = ws.addRow([
-      numbers.get(period.id),
-      time,
-      ...contents.map((c) => c?.text ?? ''),
-    ])
-    row.height = 30
+    const row = ws.addRow([i + 1, ...contents.map((c) => c?.text ?? '')])
+    row.height = 34
     row.eachCell({ includeEmpty: true }, (cell, col) => {
-      if (col > 2 + DAYS.length) return
+      if (col > 1 + DAYS.length) return
       cell.border = BORDER
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      const content = col > 2 ? contents[col - 3] : null
-      if (content?.color) {
+      if (col === 1) return
+      const period = slots[col - 2]
+      const content = contents[col - 2]
+      if (period?.label != null) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ACTIVITY_FILL } }
+        cell.font = { italic: true }
+      } else if (content?.color) {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: toArgb(content.color) } }
       }
     })
@@ -92,7 +90,7 @@ export async function exportToExcel(state: AppState) {
   wb.created = new Date()
 
   for (const cls of state.classes) {
-    addScheduleSheet(wb, `Kelas ${cls.name}`, state.periods, (day, period) => {
+    addScheduleSheet(wb, `Kelas ${cls.name}`, state.daySchedules, (day, period) => {
       const entry = state.entries.find(
         (e) => e.classId === cls.id && e.day === day && e.periodId === period.id,
       )
@@ -107,7 +105,7 @@ export async function exportToExcel(state: AppState) {
   }
 
   for (const teacher of state.teachers) {
-    addScheduleSheet(wb, `Guru ${teacher.code} ${teacher.name}`, state.periods, (day, period) => {
+    addScheduleSheet(wb, `Guru ${teacher.code} ${teacher.name}`, state.daySchedules, (day, period) => {
       const slotEntries = state.entries.filter(
         (e) => e.teacherId === teacher.id && e.day === day && e.periodId === period.id,
       )

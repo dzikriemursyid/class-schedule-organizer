@@ -20,13 +20,15 @@ export function EntryDialog({ classId, day, period, onClose }: EntryDialogProps)
   const [span, setSpan] = useState(1)
 
   const className = state.classes.find((c) => c.id === classId)?.name ?? '?'
-  const numbers = lessonNumbers(state.periods)
+  const dayPeriods = useMemo(() => state.daySchedules[day] ?? [], [state.daySchedules, day])
+  const numbers = lessonNumbers(dayPeriods)
 
-  // Jam pelajaran berikutnya (istirahat dilewati) untuk opsi "N jam berturut-turut".
+  // Jam pelajaran berikutnya di hari yang sama (slot kegiatan dilewati)
+  // untuk opsi "N jam berturut-turut".
   const followingPeriods = useMemo(() => {
-    const start = state.periods.findIndex((p) => p.id === period.id)
-    return state.periods.slice(start).filter((p) => !p.isBreak)
-  }, [state.periods, period.id])
+    const start = dayPeriods.findIndex((p) => p.id === period.id)
+    return dayPeriods.slice(start).filter((p) => p.label === null)
+  }, [dayPeriods, period.id])
 
   // Guru yang sudah mengajar kelas lain di slot ini.
   const busyTeachers = useMemo(() => {

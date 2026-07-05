@@ -6,7 +6,8 @@ description: Build, launch, and drive the class-schedule-organizer app (Vite + R
 # Verifying class-schedule-organizer
 
 Static React SPA, no backend. All state lives in `localStorage` under
-`class-schedule-organizer:v1`.
+`class-schedule-organizer:v2` (v1 key is auto-migrated on load — worth
+re-testing when the schema changes).
 
 ## Build & launch
 
@@ -38,5 +39,7 @@ Flows worth driving:
 ## Gotchas
 
 - `confirm()`/native dialogs are used for deletes and period changes — register `page.once('dialog', …)` **before** clicking.
-- Seed data uses fixed ids (`t-af`, `s-ipa`, `c-7a`, periods `p1`…`p10`), handy for selecting options by value in tests.
-- Break rows (`.break-row`) are not clickable cells; lesson rows have 5 `td.cell` each.
+- Seed data uses fixed ids (`t-af`, `s-ipa`, `c-7a`; periods per hari: `sen-1`…`sen-10`, `sel-*`, `rab-*`, `kam-*`, `jum-1`…`jum-8`), handy for selecting options by value in tests.
+- Tiap hari punya susunan jam sendiri (`state.daySchedules[day]`). Grid = 5 kolom `.day-col`; slot mapel = `.slot.lesson` (clickable), slot kegiatan (Upacara/Istirahat/Solat Jumat) = `.slot.activity` (tidak clickable). Senin default diawali Upacara, Jumat lebih pendek + Solat Jumat.
+- Penomoran "jam ke-" dihitung per hari dan melompati slot kegiatan — jam ke-1 Senin default mulai 07:45, bukan 07:00.
+- Pengaturan jam di Data Master pakai tab per hari (`.day-tab`) + tombol "Salin" antar hari; simpan memakai satu tombol "Simpan Jam Pelajaran" untuk seluruh minggu.

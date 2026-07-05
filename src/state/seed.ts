@@ -1,5 +1,5 @@
 import type { AppState, ScheduleEntry } from '../types'
-import { makeDefaultPeriods } from './scheduleReducer'
+import { makeDefaultDaySchedules } from './scheduleReducer'
 
 const teachers = [
   { id: 't-af', name: 'Ahmad Fauzi', code: 'AF' },
@@ -45,44 +45,52 @@ function entry(
 }
 
 export function buildSeedState(): AppState {
+  // Senin: sen-1 = Upacara, jadi KBM mulai sen-2. Jumat: jum-8 = Solat Jumat.
   const entries: ScheduleEntry[] = [
     // Kelas 7A — Senin
-    entry(0, 'p1', 'c-7a', 's-mtk', 't-af'),
-    entry(0, 'p2', 'c-7a', 's-mtk', 't-af'),
-    entry(0, 'p3', 'c-7a', 's-bin', 't-sr'),
-    entry(0, 'p5', 'c-7a', 's-ipa', 't-dl'),
-    entry(0, 'p6', 'c-7a', 's-ipa', 't-dl'),
-    entry(0, 'p7', 'c-7a', 's-big', 't-bs'),
-    entry(0, 'p9', 'c-7a', 's-pjok', 't-gr'),
-    entry(0, 'p10', 'c-7a', 's-pjok', 't-gr'),
+    entry(0, 'sen-2', 'c-7a', 's-mtk', 't-af'),
+    entry(0, 'sen-3', 'c-7a', 's-mtk', 't-af'),
+    entry(0, 'sen-5', 'c-7a', 's-bin', 't-sr'),
+    entry(0, 'sen-6', 'c-7a', 's-ipa', 't-dl'),
+    entry(0, 'sen-7', 'c-7a', 's-ipa', 't-dl'),
+    entry(0, 'sen-9', 'c-7a', 's-pjok', 't-gr'),
+    entry(0, 'sen-10', 'c-7a', 's-pjok', 't-gr'),
     // Kelas 7A — Selasa
-    entry(1, 'p1', 'c-7a', 's-bin', 't-sr'),
-    entry(1, 'p2', 'c-7a', 's-bin', 't-sr'),
-    entry(1, 'p3', 'c-7a', 's-ips', 't-ep'),
-    entry(1, 'p5', 'c-7a', 's-pai', 't-fh'),
-    entry(1, 'p6', 'c-7a', 's-sbd', 't-hp'),
+    entry(1, 'sel-1', 'c-7a', 's-bin', 't-sr'),
+    entry(1, 'sel-2', 'c-7a', 's-bin', 't-sr'),
+    entry(1, 'sel-3', 'c-7a', 's-ips', 't-ep'),
+    entry(1, 'sel-5', 'c-7a', 's-big', 't-bs'),
+    entry(1, 'sel-6', 'c-7a', 's-sbd', 't-hp'),
+    // Kelas 7A — Jumat
+    entry(4, 'jum-1', 'c-7a', 's-pai', 't-fh'),
+    entry(4, 'jum-2', 'c-7a', 's-pai', 't-fh'),
+    entry(4, 'jum-3', 'c-7a', 's-pjok', 't-gr'),
     // Kelas 7B — Senin
-    entry(0, 'p1', 'c-7b', 's-ipa', 't-dl'),
-    entry(0, 'p2', 'c-7b', 's-ipa', 't-dl'),
-    entry(0, 'p3', 'c-7b', 's-mtk', 't-af'),
-    entry(0, 'p5', 'c-7b', 's-big', 't-bs'),
-    entry(0, 'p6', 'c-7b', 's-bin', 't-sr'),
-    entry(0, 'p7', 'c-7b', 's-bin', 't-sr'),
-    entry(0, 'p9', 'c-7b', 's-sbd', 't-hp'),
+    entry(0, 'sen-2', 'c-7b', 's-ipa', 't-dl'),
+    entry(0, 'sen-3', 'c-7b', 's-ipa', 't-dl'),
+    entry(0, 'sen-5', 'c-7b', 's-mtk', 't-af'),
+    entry(0, 'sen-6', 'c-7b', 's-big', 't-bs'),
+    entry(0, 'sen-7', 'c-7b', 's-bin', 't-sr'),
+    entry(0, 'sen-9', 'c-7b', 's-bin', 't-sr'),
+    entry(0, 'sen-10', 'c-7b', 's-sbd', 't-hp'),
     // Kelas 7B — Selasa
-    entry(1, 'p1', 'c-7b', 's-ips', 't-ep'),
-    entry(1, 'p2', 'c-7b', 's-ips', 't-ep'),
-    entry(1, 'p3', 'c-7b', 's-pai', 't-fh'),
-    entry(1, 'p5', 'c-7b', 's-mtk', 't-af'),
-    entry(1, 'p6', 'c-7b', 's-mtk', 't-af'),
+    entry(1, 'sel-1', 'c-7b', 's-ips', 't-ep'),
+    entry(1, 'sel-2', 'c-7b', 's-ips', 't-ep'),
+    entry(1, 'sel-3', 'c-7b', 's-pai', 't-fh'),
+    entry(1, 'sel-5', 'c-7b', 's-mtk', 't-af'),
+    entry(1, 'sel-6', 'c-7b', 's-mtk', 't-af'),
+    // Kelas 7B — Jumat
+    entry(4, 'jum-1', 'c-7b', 's-big', 't-bs'),
+    entry(4, 'jum-2', 'c-7b', 's-sbd', 't-hp'),
+    entry(4, 'jum-3', 'c-7b', 's-sbd', 't-hp'),
   ]
 
   return {
-    version: 1,
+    version: 2,
     teachers,
     subjects,
     classes,
-    periods: makeDefaultPeriods(),
+    daySchedules: makeDefaultDaySchedules(),
     entries,
   }
 }

@@ -9,13 +9,12 @@ export function ConflictBanner({ onShowTeacher }: ConflictBannerProps) {
   const { state, conflicts } = useSchedule()
   if (conflicts.groups.length === 0) return null
 
-  const numbers = lessonNumbers(state.periods)
-
   return (
     <div className="conflict-banner">
       <strong>⚠ {conflicts.groups.length} jadwal bentrok</strong>
       <ul>
         {conflicts.groups.map((group) => {
+          const numbers = lessonNumbers(state.daySchedules[group.day] ?? [])
           const teacher = state.teachers.find((t) => t.id === group.teacherId)
           const classNames = group.entries
             .map((e) => state.classes.find((c) => c.id === e.classId)?.name ?? '?')

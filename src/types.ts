@@ -36,7 +36,8 @@ export interface Period {
   id: string
   start: string
   end: string
-  isBreak: boolean
+  /** Nama kegiatan non-KBM ("Istirahat", "Upacara", "Solat Jumat"); null = jam pelajaran. */
+  label: string | null
 }
 
 export interface ScheduleEntry {
@@ -57,20 +58,21 @@ export interface SlotAssignment {
 }
 
 export interface AppState {
-  version: 1
+  version: 2
   teachers: Teacher[]
   subjects: Subject[]
   classes: ClassGroup[]
-  periods: Period[]
+  /** Susunan jam per hari, index mengikuti DAYS (0 = Senin .. 4 = Jumat). */
+  daySchedules: Period[][]
   entries: ScheduleEntry[]
 }
 
-/** Nomor "jam ke-" per period; slot istirahat tidak ikut dihitung. */
+/** Nomor "jam ke-" per period; slot kegiatan (label terisi) tidak ikut dihitung. */
 export function lessonNumbers(periods: Period[]): Map<string, number> {
   const map = new Map<string, number>()
   let n = 0
   for (const p of periods) {
-    if (!p.isBreak) map.set(p.id, ++n)
+    if (p.label === null) map.set(p.id, ++n)
   }
   return map
 }
