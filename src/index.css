@@ -920,6 +920,81 @@ body {
   color: var(--danger);
 }
 
+/* ---------- Class multi-select dropdown ---------- */
+
+.class-multiselect {
+  position: relative;
+  flex: 1;
+  min-width: 7rem;
+}
+
+.class-multiselect-toggle {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.class-multiselect-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.class-multiselect-toggle .caret {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.class-multiselect-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 10rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 100;
+  padding: 0.3rem 0;
+}
+
+.class-multiselect-actions {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.2rem;
+}
+
+.class-check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.class-check-item:hover {
+  background: var(--bg);
+}
+
+.class-check-item input[type='checkbox'] {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
 .mode-options {
   display: flex;
   flex-direction: column;

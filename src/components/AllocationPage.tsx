@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { subjectClassIds, teacherLabel, type Assignment } from '../types'
 import { useSchedule } from '../state/context'
 import { allocate, type AllocationResult } from '../utils/allocate'
@@ -151,9 +151,22 @@ export function AllocationPage({ onGoMaster }: AllocationPageProps) {
 function AssignmentEditor() {
   const { state, dispatch } = useSchedule()
   const [subjectId, setSubjectId] = useState('')
-  const [classId, setClassId] = useState('')
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([])
   const [teacherId, setTeacherId] = useState('')
   const [jp, setJp] = useState('')
+  const [classDropdownOpen, setClassDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!classDropdownOpen) return
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setClassDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [classDropdownOpen])
 
   const subject = state.subjects.find((s) => s.id === subjectId)
   const allowedClasses = subject
@@ -161,25 +174,49 @@ function AssignmentEditor() {
     : state.classes
   const maxJp = subject?.maxJpPerWeek
 
-  const duplicate = state.assignments.some((a) => a.subjectId === subjectId && a.classId === classId)
+  const duplicateIds = new Set(
+    state.assignments
+      .filter((a) => a.subjectId === subjectId)
+      .map((a) => a.classId),
+  )
+  const hasDuplicate = selectedClassIds.some((id) => duplicateIds.has(id))
   const jpNum = Number(jp)
   const jpValid = jp.trim() !== '' && jpNum > 0 && (maxJp == null || jpNum <= maxJp)
-  const canAdd = subjectId !== '' && classId !== '' && teacherId !== '' && jpValid && !duplicate
+  const canAdd =
+    subjectId !== '' && selectedClassIds.length > 0 && teacherId !== '' && jpValid && !hasDuplicate
 
   function pickSubject(id: string) {
     setSubjectId(id)
-    setClassId('')
+    setSelectedClassIds([])
     const s = state.subjects.find((x) => x.id === id)
     setJp(s?.maxJpPerWeek != null ? String(s.maxJpPerWeek) : '')
   }
 
+  function toggleClass(classId: string) {
+    setSelectedClassIds((prev) =>
+      prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId],
+    )
+  }
+
+  function selectAllClasses() {
+    const allIds = allowedClasses.map((c) => c.id)
+    setSelectedClassIds(allIds)
+  }
+
+  function clearAllClasses() {
+    setSelectedClassIds([])
+  }
+
   function handleAdd() {
     if (!canAdd) return
-    dispatch({
-      type: 'ADD_ASSIGNMENT',
-      assignment: { id: crypto.randomUUID(), subjectId, classId, teacherId, jp: jpNum },
-    })
-    setClassId('')
+    for (const cId of selectedClassIds) {
+      if (duplicateIds.has(cId)) continue
+      dispatch({
+        type: 'ADD_ASSIGNMENT',
+        assignment: { id: crypto.randomUUID(), subjectId, classId: cId, teacherId, jp: jpNum },
+      })
+    }
+    setSelectedClassIds([])
     setTeacherId('')
     setJp(maxJp != null ? String(maxJp) : '')
   }
@@ -277,14 +314,44 @@ function AssignmentEditor() {
             </option>
           ))}
         </select>
-        <select value={classId} onChange={(e) => setClassId(e.target.value)} disabled={!subject}>
-          <option value="">— kelas —</option>
-          {allowedClasses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="class-multiselect" ref={dropdownRef}>
+          <button
+            type="button"
+            className="class-multiselect-toggle"
+            onClick={() => setClassDropdownOpen((v) => !v)}
+            disabled={!subject}
+          >
+            {selectedClassIds.length === 0
+              ? '— kelas —'
+              : selectedClassIds.length === allowedClasses.length
+                ? `Semua (${allowedClasses.length})`
+                : `${selectedClassIds.length} kelas`}
+            <span className="caret">▾</span>
+          </button>
+          {classDropdownOpen && (
+            <div className="class-multiselect-dropdown">
+              <div className="class-multiselect-actions">
+                <button type="button" className="btn small" onClick={selectAllClasses}>
+                  Semua
+                </button>
+                <button type="button" className="btn small" onClick={clearAllClasses}>
+                  Hapus
+                </button>
+              </div>
+              {allowedClasses.map((c) => (
+                <label key={c.id} className="class-check-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedClassIds.includes(c.id)}
+                    onChange={() => toggleClass(c.id)}
+                  />
+                  <span>{c.name}</span>
+                  {duplicateIds.has(c.id) && <span className="hint warn">✗</span>}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
         <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
           <option value="">— guru —</option>
           {state.teachers.map((t) => (
@@ -306,8 +373,8 @@ function AssignmentEditor() {
           Tambah
         </button>
       </div>
-      {duplicate && subjectId !== '' && classId !== '' && (
-        <p className="hint warn">Penugasan mapel + kelas ini sudah ada.</p>
+      {hasDuplicate && subjectId !== '' && selectedClassIds.length > 0 && (
+        <p className="hint warn">Penugasan mapel + kelas yang ditandai ✗ sudah ada.</p>
       )}
       {subjectId !== '' && jp.trim() !== '' && maxJp != null && jpNum > maxJp && (
         <p className="hint warn">JP melebihi maks {maxJp} untuk mapel ini.</p>
