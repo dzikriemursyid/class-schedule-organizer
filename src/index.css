@@ -922,6 +922,10 @@ body {
 
 /* ---------- Class multi-select dropdown ---------- */
 
+.card:has(.assign-add) {
+  overflow: visible;
+}
+
 .class-multiselect {
   position: relative;
   flex: 1;
